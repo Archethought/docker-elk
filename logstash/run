@@ -9,9 +9,15 @@ import socket
 import sys
 import time
 
+sys.stdout.write('Initializing Logstash')
 ES_ADDRESS = (
     os.environ['ES_PORT_9200_TCP_ADDR'],
     os.environ['ES_PORT_9200_TCP_PORT']
+)
+
+RABBITMQ_ADDRESS = (
+    os.environ['RABBITMQ_PORT_5672_TCP_ADDR'],
+    os.environ['RABBITMQ_PORT_5672_TCP_PORT']
 )
 
 TIMEOUT = int(os.environ.get('ES_TIMEOUT', 120))
@@ -22,6 +28,24 @@ input {
   tcp {
     port => 5000
     codec => json_lines
+  }
+  rabbitmq {
+    exclusive => false
+    host => '%(RABBITMQ_PORT_5672_TCP_ADDR)s'
+    password => 'guest'
+    user => 'guest'
+    vhost => '/'
+    # No ack to boost your performance
+    ack => false
+    # Too high prefetch will slow down
+    prefetch_count =>  50
+    auto_delete => false
+    durable => true
+    exchange => "data"
+    key => '#'
+ 
+    queue => "logstash"
+    threads => 8
   }
 }
 output {
@@ -42,6 +66,7 @@ def connection_accepted(address, timeout, connect_timeout=10, connect_delay=1):
     while time.time() - start_time < timeout:
         try:
             socket.create_connection(ES_ADDRESS, connect_timeout).close()
+            socket.create_connection(RABBITMQ_ADDRESS, connect_timeout).close()
         except socket.error:
             time.sleep(connect_delay)
         else:
@@ -49,8 +74,11 @@ def connection_accepted(address, timeout, connect_timeout=10, connect_delay=1):
     else:
         return False
 
+sys.stdout.write('Connecting Ports')
 if connection_accepted(ES_ADDRESS, TIMEOUT):
+    sys.stdout.write('Starting Logstash...')
     os.execv(LOGSTASH_BIN, [LOGSTASH_BIN, '-e', LOGSTASH_CONFIG])
+    sys.stdout.write('Started Logstash')
 else:
     sys.stderr.write(
         'Unable to connect to ElasticSearch (%s:%s) '
