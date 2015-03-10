@@ -1,17 +1,21 @@
 FROM ubuntu:14.04
 MAINTAINER Peter Klipfel <peter@archethought.com>
 
-RUN ["apt-get", "install", "-y", "python-twisted", "tar"]
-ADD https://download.elasticsearch.org/kibana/kibana/kibana-3.1.0.tar.gz /tmp/
+ADD https://download.elasticsearch.org/kibana/kibana/kibana-4.0.1-linux-x64.tar.gz /tmp/
 
-RUN ["mkdir", "-p", "/var/www/"]
-RUN ["tar", "-C", "/var/www", "-xf", "/tmp/kibana-3.1.0.tar.gz"]
-RUN ["cp", "/var/www/kibana-3.1.0/app/dashboards/logstash.json", "/var/www/kibana-3.1.0/app/dashboards/default.json"]
-RUN ["rm", "-f", "/tmp/kibana-3.1.0.tar.gz"]
+RUN ["tar", "-C", "/opt", "-xf", "/tmp/kibana-4.0.1-linux-x64.tar.gz"]
+RUN ["rm", "-f", "/tmp/kibana-4.0.1-linux-x64.tar.gz"]
+
+RUN mkdir /src
+ADD run /src/run
+
+RUN ls /opt/kibana-4.0.1-linux-x64/
+RUN ls -la /src
+RUN cat /src/run
 
 USER nobody
-WORKDIR /tmp
-CMD ["/usr/bin/twistd", "-n", "web", "--path", "/var/www/kibana-3.1.0"]
+
+CMD ["/src/run"]
 
 EXPOSE 8080
 
