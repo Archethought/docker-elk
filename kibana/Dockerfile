@@ -9,9 +9,7 @@ RUN ["rm", "-f", "/tmp/kibana-4.0.1-linux-x64.tar.gz"]
 RUN mkdir /src
 ADD run /src/run
 
-RUN ls /opt/kibana-4.0.1-linux-x64/
-RUN ls -la /src
-RUN cat /src/run
+RUN chown -R nobody:nogroup /opt/kibana-4.0.1-linux-x64
 
 USER nobody
 
